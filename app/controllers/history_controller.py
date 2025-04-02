@@ -2,9 +2,11 @@ from flask import request, jsonify
 import logging
 from app.database import get_db_connection
 
+# Fetches all message history for a session
 def handle_history_fetch():
     session_id = request.args.get("session_id")
 
+    # No session provided
     if not session_id:
         return jsonify({"messages": []})
 
@@ -14,6 +16,8 @@ def handle_history_fetch():
 
     try:
         cursor = conn.cursor()
+
+        # Query messages from database
         cursor.execute(
             """
             SELECT content, message_type
@@ -27,6 +31,7 @@ def handle_history_fetch():
         cursor.close()
         conn.close()
 
+        # Convert to structured response
         history = [{"content": r[0], "type": r[1]} for r in rows]
         return jsonify({"messages": history})
     except Exception as e:
