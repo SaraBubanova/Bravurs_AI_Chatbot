@@ -1,7 +1,7 @@
 from flask import request, jsonify, Response, stream_with_context
 import logging
 from app.chatbot import company_info_handler_streaming
-from app.database import create_chat_session
+from app.database import create_chat_session, store_message
 
 # Handle user chat POST request and stream GPT response
 def handle_chat():
@@ -28,8 +28,18 @@ def handle_chat():
                 "session_id": None
             })
 
-    # Stream GPT reply using generator
+    # Store user message before processing
+    store_message(session_id, user_input, "user")
+
+    # Stream GPT reply and capture for DB
     def generate():
-        yield from company_info_handler_streaming(user_input, session_id)
+        full_reply = ""
+        try:
+            for chunk in company_info_handler_streaming(user_input, session_id):
+                full_reply += chunk
+                yield chunk
+        finally:
+            if full_reply.strip():
+                store_message(session_id, full_reply.strip(), "bot")
 
     return Response(stream_with_context(generate()), mimetype="text/plain")

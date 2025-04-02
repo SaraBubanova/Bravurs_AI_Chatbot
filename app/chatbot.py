@@ -35,7 +35,6 @@ memory_prompts = [
 def log_async(fn, *args):
     threading.Thread(target=fn, args=args).start()
 
-# Check if the user is asking about the last question
 def is_last_question_request(user_input):
     return any(fuzz.partial_ratio(user_input.lower(), prompt) > 80 for prompt in memory_prompts)
 
@@ -45,7 +44,6 @@ def strip_html_paragraphs(text):
 def estimate_tokens(text):
     return max(1, int(len(text.split()) * 0.75))
 
-#Smarter history trim: prioritize last 3 full pairs
 def get_recent_conversation(session_id, max_tokens=400):
     if not session_id:
         return []
@@ -168,7 +166,7 @@ def company_info_handler(user_input, session_id=None):
             log_async(store_message, session_id, reply, "bot")
         return reply
 
-    #Hybrid First — Try full-text search first
+    # Hybrid First — Try full-text search first
     search_results = hybrid_search(user_input, top_k=5)
     if not search_results:
         embedding = embed_query_cached(user_input)
@@ -201,7 +199,7 @@ def company_info_handler(user_input, session_id=None):
 def company_info_handler_streaming(user_input, session_id=None):
     recent_convo = get_recent_conversation(session_id)
 
-    #Hybrid First in streaming too
+    # Hybrid First in streaming too
     search_results = hybrid_search(user_input, top_k=5)
     if not search_results:
         embedding = embed_query_cached(user_input)
@@ -227,16 +225,10 @@ def company_info_handler_streaming(user_input, session_id=None):
             stream=True
         )
 
-        full_reply = ""
         for chunk in stream:
             delta = chunk.choices[0].delta.content
             if delta:
-                full_reply += delta
                 yield delta
-
-        if session_id:
-            log_async(store_message, session_id, user_input, "user")
-            log_async(store_message, session_id, full_reply.strip(), "bot")
 
     except Exception as e:
         logging.error(f"Streaming error: {e}")

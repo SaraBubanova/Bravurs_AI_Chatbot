@@ -9,19 +9,16 @@ function selectSmiley(rating) {
   });
 }
 
-// Hide the feedback container and show the "Give Feedback" button
 function hideFeedback() {
   document.getElementById("feedback-container").style.display = "none";
   document.getElementById("show-feedback-btn").style.display = "block";
 }
 
-// Show the feedback container and hide the "Give Feedback" button
 function showFeedback() {
   document.getElementById("feedback-container").style.display = "block";
   document.getElementById("show-feedback-btn").style.display = "none";
 }
 
-// Enable editing for the feedback comment field
 function enableEditMode() {
   document.getElementById("feedback-comment").disabled = false;
   const message = document.getElementById("feedback-message");
@@ -29,7 +26,6 @@ function enableEditMode() {
   message.style.color = "blue";
 }
 
-// Send a message to the chatbot and display streaming response
 function sendMessage() {
   let userInputField = document.getElementById("user-input");
   let userInput = userInputField.value.trim();
@@ -38,11 +34,9 @@ function sendMessage() {
   let chatBox = document.getElementById("chat-box");
   let spinner = document.getElementById("spinner");
 
-  // Add the user's message to the chat box
   chatBox.innerHTML += `<p class="message user-message">${userInput}</p>`;
   userInputField.value = "";
 
-  // Show spinner and start timer for response delay
   spinner.style.display = "block";
   let startTime = performance.now();
   let elapsed = 0;
@@ -59,8 +53,7 @@ function sendMessage() {
     "session_id": currentSessionId
   });
 
-  // Send chat message to backend
-  fetch("/chat", {
+  fetch("/api/v1/chat", {
     method: "POST",
     body: formData,
     headers: { "Content-Type": "application/x-www-form-urlencoded" }
@@ -74,7 +67,6 @@ function sendMessage() {
       botMsg.className = "message bot-message";
       chatBox.appendChild(botMsg);
 
-      // Read streamed response chunks
       function readChunk() {
         return reader.read().then(({ done, value }) => {
           if (done) {
@@ -104,13 +96,11 @@ function sendMessage() {
     });
 }
 
-// Submit feedback rating and comment to backend
 function submitFeedback() {
   const commentBox = document.getElementById("feedback-comment");
   const comment = commentBox.value;
   const messageDiv = document.getElementById("feedback-message");
 
-  // Ensure a rating is selected
   if (!selectedRating) {
     messageDiv.innerText = "Please select a rating before submitting.";
     messageDiv.style.color = "red";
@@ -123,7 +113,7 @@ function submitFeedback() {
     "comment": comment
   });
 
-  fetch("/submit_feedback", {
+  fetch("/api/v1/feedback", {
     method: "POST",
     body: formData,
     headers: { "Content-Type": "application/x-www-form-urlencoded" }
@@ -141,9 +131,8 @@ function submitFeedback() {
     });
 }
 
-// Load message history from server for this session
 function loadMessageHistory() {
-  fetch(`/history?session_id=${currentSessionId}`)
+  fetch(`/api/v1/history?session_id=${currentSessionId}`)
     .then(res => res.json())
     .then(data => {
       const chatBox = document.getElementById("chat-box");
@@ -164,13 +153,10 @@ function loadMessageHistory() {
     });
 }
 
-// Initialize chat UI and load session history on page load
 window.onload = function () {
-  // Add welcome message
   document.getElementById("chat-box").innerHTML =
     '<p class="message bot-message">Welcome to Bravur AI Chatbot! How can I help you today?</p>';
 
-  // Send message on Enter key
   document.getElementById("user-input").addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -178,9 +164,6 @@ window.onload = function () {
     }
   });
 
-  // Log session ID to console
   console.log("Current Session ID:", currentSessionId);
-
-  // Load previous messages for this session
   loadMessageHistory();
 };
