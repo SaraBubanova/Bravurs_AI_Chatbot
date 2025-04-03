@@ -2,36 +2,50 @@ from flask import request, jsonify, Response, stream_with_context
 import logging
 from app.chatbot import company_info_handler_streaming
 from app.database import create_chat_session, store_message
+from app.speech import speech_to_text
 
-# Handle user chat POST request and stream GPT response
+logging.basicConfig(level=logging.DEBUG)
+
+# Handle text-based chat
 def handle_chat():
-    user_input = request.form["user_input"]
+    user_input = request.form.get("user_input")
     session_id = request.form.get("session_id")
 
-    # Create session if none provided
-    if session_id == "None" or not session_id:
-        session_id = create_chat_session()
-        if not session_id:
-            return jsonify({
-                "response": "Sorry, I'm having trouble with your session. Please try again.",
-                "session_id": None
-            })
+    # Handle missing input
+    if not user_input:
+        return jsonify({"response": "No input provided.", "session_id": session_id})
 
-    # Convert session_id to integer
+    return process_chat(user_input, session_id)
+
+# Handle voice-based chat
+def handle_voice_chat():
     try:
-        session_id = int(session_id)
-    except (ValueError, TypeError):
+        session_id = request.form.get("session_id", "unknown")
+
+        logging.debug(f"Voice chat request received. Session ID: {session_id}")
+
+        # Convert speech to text
+        user_input = speech_to_text()
+
+        if not user_input:
+            logging.error("Speech recognition returned empty text.")
+            return jsonify({"error": "Sorry, I couldn't recognize your speech."}), 400
+
+        return process_chat(user_input, session_id)
+
+    except Exception as e:
+        logging.exception("Error processing voice chat")
+        return jsonify({"error": f"Error processing voice: {str(e)}"}), 500
+
+# Process chat messages
+def process_chat(user_input, session_id):
+    if not session_id or session_id == "None":
         session_id = create_chat_session()
         if not session_id:
-            return jsonify({
-                "response": "Sorry, I'm having trouble with your session. Please try again.",
-                "session_id": None
-            })
+            return jsonify({"response": "Error creating session.", "session_id": None})
 
-    # Store user message before processing
     store_message(session_id, user_input, "user")
 
-    # Stream GPT reply and capture for DB
     def generate():
         full_reply = ""
         try:
