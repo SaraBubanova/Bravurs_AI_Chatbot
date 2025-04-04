@@ -25,7 +25,7 @@ Or a PyCharm asks you to create an interpreter using the requirements.txt file (
 
 ## Run the App
 ```bash
-python.app.py
+python run.py
 ```
 
 
