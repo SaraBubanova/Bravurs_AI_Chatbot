@@ -189,3 +189,15 @@ textarea {
 .edit-feedback:hover {
   background-color: #218838;
 }
+
+.listening {
+    animation: pulse 1.5s infinite;
+    background-color: #ff000020;
+    border-radius: 50%;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}

@@ -1,4 +1,6 @@
 let selectedRating = null;
+let recognition = null;
+let isListening = false;
 
 // Highlight selected smiley and store the rating value
 function selectSmiley(rating) {
@@ -151,6 +153,90 @@ function loadMessageHistory() {
       });
       chatBox.scrollTop = chatBox.scrollHeight;
     });
+}
+
+document.getElementById("voice-chat-btn").addEventListener("click", function() {
+    // Check if browser supports the Web Speech API
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Your browser doesn't support speech recognition. Try Chrome or Edge.");
+        return;
+    }
+
+    if (isListening) {
+        // If already listening, stop it
+        stopSpeechRecognition();
+        return;
+    }
+
+    // Initialize speech recognition
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    // Start visual feedback
+    isListening = true;
+    const voiceChatBtn = document.getElementById("voice-chat-btn");
+    voiceChatBtn.textContent = "🎙️ Listening...";
+    voiceChatBtn.classList.add("listening");
+
+    // Handle results
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("user-input").value = transcript;
+
+        // Small delay before sending to show the recognized text to the user
+        setTimeout(() => {
+            sendMessage();
+        }, 500);
+    };
+
+    // Handle end of speech recognition
+    recognition.onend = function() {
+        stopSpeechRecognition();
+    };
+
+    // Handle errors
+    recognition.onerror = function(event) {
+        console.error("Speech recognition error:", event.error);
+
+        let errorMessage = "Speech recognition error. ";
+        if (event.error === 'not-allowed') {
+            errorMessage += "Please allow microphone access.";
+        } else if (event.error === 'no-speech') {
+            errorMessage += "No speech detected. Try again.";
+        } else {
+            errorMessage += "Try again later.";
+        }
+
+        alert(errorMessage);
+        stopSpeechRecognition();
+    };
+
+    // Start recognition
+    try {
+        recognition.start();
+    } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        alert("Could not start speech recognition. Try again.");
+        stopSpeechRecognition();
+    }
+});
+
+// Helper function to stop speech recognition and reset UI
+function stopSpeechRecognition() {
+    isListening = false;
+    const voiceChatBtn = document.getElementById("voice-chat-btn");
+    voiceChatBtn.textContent = "🎤";
+    voiceChatBtn.classList.remove("listening");
+
+    if (recognition) {
+        try {
+            recognition.stop();
+        } catch (e) {
+            // Ignore errors when stopping
+        }
+    }
 }
 
 window.onload = function () {
