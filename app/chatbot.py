@@ -141,22 +141,30 @@ def company_info_handler(user_input, session_id=None):
     if is_last_question_request(user_input) or "last answer" in user_input.lower() or "summarize" in user_input.lower():
         return handle_meta_questions(user_input, session_id)
 
-    recent_convo = get_recent_conversation(session_id)
     detected_intent = classify_intent(user_input)
+
+    if detected_intent == "Human Support Service Request":
+        reply = (
+            "For human support, contact us on WhatsApp at +31 6 12345678 or email support@bravur.com."
+        )
+        if session_id:
+            reply += f" When contacting support, please mention your session ID: {session_id}"
+            log_async(store_message, session_id, user_input, "user")
+            log_async(store_message, session_id, reply, "bot")
+        return reply
+
+    recent_convo = get_recent_conversation(session_id)
 
     if detected_intent == "Unknown":
         return "I'm here to answer questions about Bravur and IT services. How can I help?"
 
-    if detected_intent == "Human Support Service Request":
-        return "For human support, contact us on WhatsApp at +31 6 12345678 or email support@bravur.com."
-
     if detected_intent == "IT Services & Trends":
         it_prompt = [
-            {"role": "system", "content": (
-                "You are a knowledgeable assistant providing insights on IT services and trends. "
-                "Avoid repeating unless asked. Be clear and helpful."
-            )}
-        ] + recent_convo + [{"role": "user", "content": user_input}]
+                        {"role": "system", "content": (
+                            "You are a knowledgeable assistant providing insights on IT services and trends. "
+                            "Avoid repeating unless asked. Be clear and helpful."
+                        )}
+                    ] + recent_convo + [{"role": "user", "content": user_input}]
 
         reply = gpt_cached_response("gpt-4o-mini", it_prompt).strip()
         reply = strip_html_paragraphs(reply)
@@ -166,7 +174,7 @@ def company_info_handler(user_input, session_id=None):
             log_async(store_message, session_id, reply, "bot")
         return reply
 
-    # Hybrid First — Try full-text search first
+    # --- Search logic ---
     search_results = hybrid_search(user_input, top_k=5)
     if not search_results:
         embedding = embed_query_cached(user_input)
@@ -196,10 +204,23 @@ def company_info_handler(user_input, session_id=None):
 
     return reply
 
+
 def company_info_handler_streaming(user_input, session_id=None):
+    detected_intent = classify_intent(user_input)
+
+    if detected_intent == "Human Support Service Request":
+        reply = (
+            "For human support, contact us on WhatsApp at +31 6 12345678 or email support@bravur.com."
+        )
+        if session_id:
+            reply += f" When contacting support, please mention your session ID: {session_id}"
+            log_async(store_message, session_id, user_input, "user")
+            log_async(store_message, session_id, reply, "bot")
+        yield reply
+        return
+
     recent_convo = get_recent_conversation(session_id)
 
-    # Hybrid First in streaming too
     search_results = hybrid_search(user_input, top_k=5)
     if not search_results:
         embedding = embed_query_cached(user_input)
@@ -233,6 +254,8 @@ def company_info_handler_streaming(user_input, session_id=None):
     except Exception as e:
         logging.error(f"Streaming error: {e}")
         yield "\n[Error generating response]"
+
+
 
 agent_connector.register_agent("Bravur_Information_Agent", company_info_handler)
 
