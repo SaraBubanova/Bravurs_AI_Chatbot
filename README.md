@@ -11,17 +11,26 @@ cd Bravurs_AI_Chatbot
 
 ## Drag .env file into root directory (on Teams, deliverables folder)
 
-## Install dependencies
+## Create a virtual environment
 ```bash
-pip install -r requirements.txt
-```
-
-## Make virtual environment 
-```Bash
 python -m venv venv
 ```
 Or a PyCharm asks you to create an interpreter using the requirements.txt file (Click Yes)
 
+# Activate the virtual environment
+# On Windows:
+```bash
+venv\Scripts\activate
+```
+# On macOS/Linux:
+```bash
+source venv/bin/activate
+```
+
+## Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
 ## Run the App
 ```bash
