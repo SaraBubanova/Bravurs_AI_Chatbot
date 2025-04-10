@@ -1,4 +1,5 @@
-
+CREATE OR REPLACE FUNCTION delete_old_chat_sessions()
+RETURNS TRIGGER AS $$
 DECLARE
     sessions_before integer;
     sessions_old integer;
@@ -8,8 +9,8 @@ BEGIN
     SELECT COUNT(*) INTO sessions_before FROM chat_session;
     
     -- Count sessions older than 7 days
-    SELECT COUNT(*) INTO sessions_old 
-    FROM chat_session 
+    SELECT COUNT(*) INTO sessions_old
+    FROM chat_session
     WHERE timestamp < NOW() - INTERVAL '7 days';
     
     RAISE NOTICE 'Trigger cleanup function executing, current time: %', NOW();
@@ -19,13 +20,13 @@ BEGIN
     -- Delete messages from sessions older than 7 days
     DELETE FROM message
     WHERE session_id IN (
-        SELECT session_id 
-        FROM chat_session 
+        SELECT session_id
+        FROM chat_session
         WHERE timestamp < NOW() - INTERVAL '7 days'
     );
     
     -- Delete chat sessions older than 7 days
-    DELETE FROM chat_session 
+    DELETE FROM chat_session
     WHERE timestamp < NOW() - INTERVAL '7 days';
     
     -- Count sessions after deletion
@@ -34,3 +35,4 @@ BEGIN
     
     RETURN NEW;
 END;
+$$ LANGUAGE plpgsql;
